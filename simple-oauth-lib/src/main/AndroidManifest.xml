@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.suenara.simpleoauthlib">
+
+    <application>
+        <activity
+            android:name="com.suenara.simpleoauthlib.OauthActivity"
+            android:excludeFromRecents="true"
+            android:launchMode="singleInstance"/>
+    </application>
+</manifest>
