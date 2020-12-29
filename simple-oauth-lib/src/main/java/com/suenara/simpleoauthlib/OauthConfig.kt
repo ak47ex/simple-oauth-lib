@@ -8,12 +8,13 @@ import kotlinx.parcelize.Parcelize
 data class OauthConfig(
     val authEndpoint: Uri,
     val tokenEndpoint: Uri,
-    val revokeTokenEndpoint: Uri,
+    val revocationEndpoint: Uri,
     val clientId: String,
     val redirectUri: Uri,
     val scopes: List<String>,
     val responseType: ResponseType,
-    val accessType: AccessType = AccessType.ONLINE,
+    val audience: String = clientId,
+    val accessType: AccessType = AccessType.OFFLINE,
 ) : Parcelable {
 
     constructor(
@@ -21,6 +22,7 @@ data class OauthConfig(
         clientId: String,
         redirectUri: Uri,
         scopes: List<String>,
+        audience: String = clientId,
     ) : this(
         endpoint.buildUpon().appendPath("auth").build(),
         endpoint.buildUpon().appendPath("token").build(),
@@ -29,6 +31,7 @@ data class OauthConfig(
         redirectUri,
         scopes,
         ResponseType.CODE,
+        audience,
         AccessType.OFFLINE
     )
 

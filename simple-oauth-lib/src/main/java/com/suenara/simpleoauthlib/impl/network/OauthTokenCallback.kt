@@ -8,7 +8,7 @@ import java.util.concurrent.Executor
 
 internal class OauthTokenCallback(
     private val responseExecutor: Executor,
-    private val resultFactory: OauthResultFactory,
+    private val resultFactory: OauthJsonResultFactory,
     private val callback: (OauthRequestResult) -> Unit,
 ) : Callback {
 

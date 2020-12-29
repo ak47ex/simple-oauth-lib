@@ -10,6 +10,7 @@ import android.os.Handler
 import android.os.Looper
 import androidx.appcompat.app.AppCompatActivity
 import androidx.browser.customtabs.CustomTabsIntent
+import com.suenara.simpleoauthlib.impl.OauthParameter
 import com.suenara.simpleoauthlib.impl.OauthResponse
 import com.suenara.simpleoauthlib.impl.OauthSharedPrefs
 import com.suenara.simpleoauthlib.impl.makeAuthorizationUri
@@ -17,6 +18,7 @@ import com.suenara.simpleoauthlib.impl.network.OauthOkHttpNetworkClient
 import com.suenara.simpleoauthlib.impl.network.OauthRequestResult
 import com.suenara.simpleoauthlib.impl.network.OauthRequestResult.Error.ServerError
 import com.suenara.simpleoauthlib.impl.network.OauthRequestResult.ErrorCode
+import okhttp3.internal.toLongOrDefault
 
 internal class OauthActivity : AppCompatActivity() {
 
@@ -104,12 +106,18 @@ internal class OauthActivity : AppCompatActivity() {
     private fun handleOauthResponse(response: Uri) {
         when (val oauthResponse = OauthResponse.fromUri(response)) {
             is OauthResponse.Success -> {
-                prefs.code = oauthResponse.code
-                requestToken()
+                oauthResponse.values[OauthParameter.CODE.key]?.let { prefs.code = it }
+                if (!oauthResponse.values[OauthParameter.ACCESS_TOKEN.key].isNullOrEmpty()) {
+                    saveToken(oauthResponse.values)
+                    finishWithSuccess()
+                } else {
+                    requestToken()
+                }
             }
             is OauthResponse.Error -> {
                 prefs.error = oauthResponse.description
             }
+            else -> TODO()
         }
     }
 
@@ -118,6 +126,7 @@ internal class OauthActivity : AppCompatActivity() {
             tokenUri.toString(),
             code,
             clientId,
+            audience,
             redirectUri.toString(),
             OauthNetworkClient.GrantType.AUTHORIZATION_CODE,
             oauthRequestCallback
@@ -130,6 +139,7 @@ internal class OauthActivity : AppCompatActivity() {
                 tokenUri.toString(),
                 refreshToken,
                 clientId,
+                audience,
                 OauthNetworkClient.GrantType.REFRESH_TOKEN
             ) {
                 when (it) {
@@ -172,13 +182,15 @@ internal class OauthActivity : AppCompatActivity() {
     }
 
     private fun populatePrefs(config: OauthConfig) = with(prefs) {
-        if (clientId != config.clientId || (!scopes.containsAll(config.scopes) || !config.scopes.containsAll(scopes))) {
+        val configAuthUri = buildAuthUri(config)
+        if (clientId != config.clientId || configAuthUri != authUri) {
             resetToken()
         }
-        authUri = buildAuthUri(config)
+        authUri = configAuthUri
         redirectUri = config.redirectUri
-        revokeTokenUri = config.revokeTokenEndpoint
+        revokeTokenUri = config.revocationEndpoint
         clientId = config.clientId
+        audience = config.audience
         tokenUri = config.tokenEndpoint
         scopes = config.scopes
     }
@@ -214,6 +226,18 @@ internal class OauthActivity : AppCompatActivity() {
             refreshToken = response.refreshToken
 
             idToken = response.idToken
+        }
+    }
+
+    private fun saveToken(values: Map<String, String>) {
+        with(prefs) {
+            accessToken = values[OauthParameter.ACCESS_TOKEN.key]
+            tokenType = values[OauthParameter.TOKEN_TYPE.key]
+            tokenExpirationDate = getCurrentTimeMillis() +
+                    (values[OauthParameter.EXPIRES_IN.key]?.toLongOrDefault(0L) ?: 0L) * MILLIS_IN_SECOND
+            refreshToken = values[OauthParameter.REFRESH_TOKEN.key]
+
+            idToken = values[OauthParameter.ID_TOKEN.key]
         }
     }
 

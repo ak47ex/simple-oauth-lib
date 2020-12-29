@@ -7,6 +7,7 @@ interface OauthNetworkClient {
         tokenEndpoint: String,
         code: String,
         clientId: String,
+        audience: String = clientId,
         redirectUri: String,
         grantType: GrantType,
         callback: (OauthRequestResult) -> Unit,
@@ -16,6 +17,7 @@ interface OauthNetworkClient {
         tokenEndpoint: String,
         refreshToken: String,
         clientId: String,
+        audience: String = clientId,
         grantType: GrantType,
         callback: (OauthRequestResult) -> Unit,
     )

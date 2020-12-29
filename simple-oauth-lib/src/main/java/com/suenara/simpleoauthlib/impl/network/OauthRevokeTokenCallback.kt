@@ -8,7 +8,7 @@ import java.util.concurrent.Executor
 
 class OauthRevokeTokenCallback(
     private val responseExecutor: Executor,
-    private val resultFactory: OauthResultFactory,
+    private val resultFactory: OauthJsonResultFactory,
     private val callback: (OauthRequestResult) -> Unit,
 ) : Callback {
     override fun onFailure(call: Call, e: IOException) {

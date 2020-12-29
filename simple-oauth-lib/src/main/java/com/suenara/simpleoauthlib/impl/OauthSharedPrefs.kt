@@ -18,6 +18,7 @@ internal class OauthSharedPrefs(context: Context) : OauthPrefs {
     override var code: String by PrefsDelegate(KEY_CODE) { it.orEmpty() }
     override var error: String by PrefsDelegate(KEY_ERROR) { it.orEmpty() }
     override var clientId: String by PrefsDelegate(KEY_CLIENT_ID) { it.orEmpty() }
+    override var audience: String by PrefsDelegate(KEY_AUDIENCE) { it.orEmpty() }
     override var scopes: List<String>
         get() = prefs.getStringSet(KEY_SCOPES, emptySet()).orEmpty().toList()
         set(value) = prefs.edit { putStringSet(KEY_SCOPES, value.toSet()) }
@@ -59,6 +60,7 @@ internal class OauthSharedPrefs(context: Context) : OauthPrefs {
         private const val KEY_CODE = "code"
         private const val KEY_ERROR = "error"
         private const val KEY_CLIENT_ID = "client_id"
+        private const val KEY_AUDIENCE = "audience"
         private const val KEY_SCOPES = "scopes"
 
         private const val KEY_ACCESS_TOKEN = "access_token"
