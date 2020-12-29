@@ -9,6 +9,8 @@ import java.util.concurrent.Executor
 
 internal class OauthOkHttpNetworkClient(private val responseExecutor: Executor) : OauthNetworkClient {
 
+    private val resultFactory = OauthResultFactory()
+
     override fun requestTokenForm(
         tokenEndpoint: String,
         code: String,
@@ -34,19 +36,19 @@ internal class OauthOkHttpNetworkClient(private val responseExecutor: Executor) 
         callback: (OauthRequestResult) -> Unit,
     ) {
         FormBody.Builder()
-            .add(PARAMETER_CLIENT_ID, clientId)
-            .add(PARAMETER_REFRESH_TOKEN, refreshToken)
-            .add(PARAMETER_GRANT_TYPE, grantType.stringValue)
+            .addEncoded(PARAMETER_CLIENT_ID, clientId)
+            .addEncoded(PARAMETER_REFRESH_TOKEN, refreshToken)
+            .addEncoded(PARAMETER_GRANT_TYPE, grantType.stringValue)
             .build()
             .let { enqueuePostRequest(tokenEndpoint, it, callback) }
     }
 
-    override fun revokeToken(revokeEndpoint: String, token: String, callback: (Boolean) -> Unit) {
+    override fun revokeToken(revokeEndpoint: String, token: String, callback: (OauthRequestResult) -> Unit) {
         val body = FormBody.Builder()
             .add(PARAMETER_REVOKING_TOKEN, token)
             .build()
         val request = Request.Builder().url(revokeEndpoint).post(body).build()
-        buildClient().newCall(request).enqueue(OauthRevokeTokenCallback(responseExecutor, callback))
+        buildClient().newCall(request).enqueue(OauthRevokeTokenCallback(responseExecutor, resultFactory, callback))
     }
 
     private fun enqueuePostRequest(
@@ -56,7 +58,7 @@ internal class OauthOkHttpNetworkClient(private val responseExecutor: Executor) 
     ) {
         val client = buildClient()
         val request = Request.Builder().url(url).post(body).build()
-        client.newCall(request).enqueue(OauthTokenCallback(responseExecutor, callback))
+        client.newCall(request).enqueue(OauthTokenCallback(responseExecutor, resultFactory, callback))
     }
 
     private fun buildClient(): OkHttpClient {

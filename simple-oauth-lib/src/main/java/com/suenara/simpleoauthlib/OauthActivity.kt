@@ -15,6 +15,8 @@ import com.suenara.simpleoauthlib.impl.OauthSharedPrefs
 import com.suenara.simpleoauthlib.impl.makeAuthorizationUri
 import com.suenara.simpleoauthlib.impl.network.OauthOkHttpNetworkClient
 import com.suenara.simpleoauthlib.impl.network.OauthRequestResult
+import com.suenara.simpleoauthlib.impl.network.OauthRequestResult.Error.ServerError
+import com.suenara.simpleoauthlib.impl.network.OauthRequestResult.ErrorCode
 
 internal class OauthActivity : AppCompatActivity() {
 
@@ -70,8 +72,9 @@ internal class OauthActivity : AppCompatActivity() {
     private fun signOut() {
         with(prefs) {
             accessToken?.takeIf { it.isNotEmpty() }?.let { token ->
-                netClient.revokeToken(revokeTokenUri.toString(), token) { isSuccess ->
-                    if (isSuccess) {
+                netClient.revokeToken(revokeTokenUri.toString(), token) { result ->
+                    val isTokenInvalid = (result as? ServerError)?.code == ErrorCode.INVALID_TOKEN
+                    if (result is OauthRequestResult.Success || isTokenInvalid) {
                         resetToken()
                         finishWithSuccess()
                     } else {
@@ -127,9 +130,14 @@ internal class OauthActivity : AppCompatActivity() {
                 tokenUri.toString(),
                 refreshToken,
                 clientId,
-                OauthNetworkClient.GrantType.REFRESH_TOKEN,
-                oauthRequestCallback
-            )
+                OauthNetworkClient.GrantType.REFRESH_TOKEN
+            ) {
+                when (it) {
+                    is OauthRequestResult.Success -> handleRequestSuccess(it)
+                    is OauthRequestResult.Error.IOError -> handleRequestError(it)
+                    is ServerError -> handleRefreshTokenError(it)
+                }
+            }
         } ?: finishWithError("refresh token doesn't exist")
     }
 
@@ -138,19 +146,41 @@ internal class OauthActivity : AppCompatActivity() {
     }
 
     private fun handleRequestSuccess(response: OauthRequestResult.Success) {
-        saveToken(response)
+        if (response is OauthRequestResult.Success.AccessToken) {
+            saveToken(response)
+        }
         finishWithSuccess()
     }
 
-    private fun populatePrefs(config: OauthConfig) {
-        if (prefs.clientId != config.clientId) {
+    private fun handleRefreshTokenError(error: ServerError) {
+        when (error.code) {
+            ErrorCode.INVALID_GRANT -> {
+                resetToken()
+                launchAuthFlow()
+            }
+            ErrorCode.INVALID_REQUEST,
+            ErrorCode.INVALID_CLIENT,
+            ErrorCode.UNSUPPORTED_GRANT_TYPE,
+            ErrorCode.UNAUTHORIZED_CLIENT,
+            ErrorCode.ACCESS_DENIED,
+            ErrorCode.INVALID_SCOPE,
+            ErrorCode.UNSUPPORTED_RESPONSE_TYPE,
+            ErrorCode.TEMPORARILY_UNAVAILABLE,
+            ErrorCode.SERVER_ERROR,
+            -> handleRequestError(error)
+        }
+    }
+
+    private fun populatePrefs(config: OauthConfig) = with(prefs) {
+        if (clientId != config.clientId || (!scopes.containsAll(config.scopes) || !config.scopes.containsAll(scopes))) {
             resetToken()
         }
-        prefs.authUri = buildAuthUri(config)
-        prefs.redirectUri = config.redirectUri
-        prefs.revokeTokenUri = config.revokeTokenEndpoint
-        prefs.clientId = config.clientId
-        prefs.tokenUri = config.tokenEndpoint
+        authUri = buildAuthUri(config)
+        redirectUri = config.redirectUri
+        revokeTokenUri = config.revokeTokenEndpoint
+        clientId = config.clientId
+        tokenUri = config.tokenEndpoint
+        scopes = config.scopes
     }
 
     private fun finishWithCancel() {
@@ -176,7 +206,7 @@ internal class OauthActivity : AppCompatActivity() {
 
     private fun buildAuthUri(config: OauthConfig): Uri = config.makeAuthorizationUri()
 
-    private fun saveToken(response: OauthRequestResult.Success) {
+    private fun saveToken(response: OauthRequestResult.Success.AccessToken) {
         with(prefs) {
             accessToken = response.accessToken
             tokenType = response.tokenType

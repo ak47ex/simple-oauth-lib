@@ -10,6 +10,7 @@ interface OauthPrefs {
     var code: String
     var error: String
     var clientId: String
+    var scopes: List<String>
 
     var accessToken: String?
     var tokenType: String?

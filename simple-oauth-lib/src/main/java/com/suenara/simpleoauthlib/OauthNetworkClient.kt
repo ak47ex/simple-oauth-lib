@@ -1,5 +1,7 @@
 package com.suenara.simpleoauthlib
 
+import com.suenara.simpleoauthlib.impl.network.OauthRequestResult
+
 interface OauthNetworkClient {
     fun requestTokenForm(
         tokenEndpoint: String,
@@ -7,7 +9,7 @@ interface OauthNetworkClient {
         clientId: String,
         redirectUri: String,
         grantType: GrantType,
-        callback: (com.suenara.simpleoauthlib.impl.network.OauthRequestResult) -> Unit,
+        callback: (OauthRequestResult) -> Unit,
     )
 
     fun refreshTokenForm(
@@ -15,10 +17,10 @@ interface OauthNetworkClient {
         refreshToken: String,
         clientId: String,
         grantType: GrantType,
-        callback: (com.suenara.simpleoauthlib.impl.network.OauthRequestResult) -> Unit,
+        callback: (OauthRequestResult) -> Unit,
     )
 
-    fun revokeToken(revokeEndpoint: String, token: String, callback: (Boolean) -> Unit)
+    fun revokeToken(revokeEndpoint: String, token: String, callback: (OauthRequestResult) -> Unit)
 
     enum class GrantType(val stringValue: String) {
         AUTHORIZATION_CODE("authorization_code"), REFRESH_TOKEN("refresh_token")
