@@ -2,10 +2,12 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.suenara.simpleoauthlib">
 
+    <uses-permission android:name="android.permission.INTERNET" />
     <application>
         <activity
             android:name="com.suenara.simpleoauthlib.OauthActivity"
             android:excludeFromRecents="true"
-            android:launchMode="singleInstance"/>
+            android:launchMode="singleInstance"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
     </application>
 </manifest>

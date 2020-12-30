@@ -1,9 +1,6 @@
 package com.suenara.simpleoauthlib
 
-import android.Manifest
-import android.app.Activity
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
@@ -35,7 +32,6 @@ internal class OauthActivity : AppCompatActivity() {
     private var isFlowLaunched = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        checkInternetPermission()
         super.onCreate(savedInstanceState)
         handleIntent(intent)
     }
@@ -116,6 +112,7 @@ internal class OauthActivity : AppCompatActivity() {
             }
             is OauthResponse.Error -> {
                 prefs.error = oauthResponse.description
+                finishWithError(prefs.error)
             }
             else -> TODO()
         }
@@ -164,7 +161,9 @@ internal class OauthActivity : AppCompatActivity() {
 
     private fun handleRefreshTokenError(error: ServerError) {
         when (error.code) {
-            ErrorCode.INVALID_GRANT -> {
+            ErrorCode.INVALID_TOKEN,
+            ErrorCode.INVALID_GRANT,
+            -> {
                 resetToken()
                 launchAuthFlow()
             }
@@ -200,7 +199,7 @@ internal class OauthActivity : AppCompatActivity() {
     }
 
     private fun finishWithError(message: String? = null) {
-        setResult(Activity.RESULT_OK, Intent().apply {
+        setResult(RESULT_OK, Intent().apply {
             putExtra(SimpleOauth.KEY_IS_SUCCESS, false)
             message?.let { putExtra(SimpleOauth.KEY_EXTRA_ERROR_MESSAGE, it) }
         })
@@ -208,7 +207,7 @@ internal class OauthActivity : AppCompatActivity() {
     }
 
     private fun finishWithSuccess() {
-        setResult(Activity.RESULT_OK, Intent().apply {
+        setResult(RESULT_OK, Intent().apply {
             putExtra(SimpleOauth.KEY_IS_SUCCESS, true)
             prefs.accessToken?.let { token -> putExtra(SimpleOauth.KEY_EXTRA_TOKEN, token) }
             prefs.idToken?.let { token -> putExtra(SimpleOauth.KEY_EXTRA_ID_TOKEN, token) }
@@ -264,14 +263,6 @@ internal class OauthActivity : AppCompatActivity() {
 
     private fun isDateExpired(timestamp: Long): Boolean {
         return timestamp < getCurrentTimeMillis()
-    }
-
-    private fun checkInternetPermission() {
-        if (packageManager.checkPermission(Manifest.permission.INTERNET,
-                packageName) != PackageManager.PERMISSION_GRANTED
-        ) {
-            throw IllegalStateException("Oauth flow requires \"android.permission.INTERNET\" permission!")
-        }
     }
 
     private fun getCurrentTimeMillis(): Long {

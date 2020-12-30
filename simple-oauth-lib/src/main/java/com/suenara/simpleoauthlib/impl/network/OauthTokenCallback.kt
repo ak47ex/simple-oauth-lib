@@ -17,11 +17,8 @@ internal class OauthTokenCallback(
     }
 
     override fun onResponse(call: Call, response: Response) {
-        val result = if (response.isSuccessful) {
-            response.safeParse { resultFactory.parseSuccessResponse(it) }
-        } else {
-            response.safeParse { resultFactory.parseErrorResponse(it) }
-        }
-        responseExecutor.execute { callback(result) }
+        response.safeParse {
+            if (response.isSuccessful) resultFactory.parseSuccessResponse(it) else resultFactory.parseErrorResponse(it)
+        }.let { result -> responseExecutor.execute { callback(result) } }
     }
 }
