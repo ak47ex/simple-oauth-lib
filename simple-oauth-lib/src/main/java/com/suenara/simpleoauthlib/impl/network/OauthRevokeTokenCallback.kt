@@ -8,13 +8,19 @@ import java.util.concurrent.Executor
 
 class OauthRevokeTokenCallback(
     private val responseExecutor: Executor,
-    private val callback: (Boolean) -> Unit,
+    private val resultFactory: OauthJsonResultFactory,
+    private val callback: (OauthRequestResult) -> Unit,
 ) : Callback {
     override fun onFailure(call: Call, e: IOException) {
-        responseExecutor.execute { callback(false) }
+        responseExecutor.execute { callback(OauthRequestResult.Error.IOError(e)) }
     }
 
     override fun onResponse(call: Call, response: Response) {
-        responseExecutor.execute { callback(response.isSuccessful) }
+        val result = if (response.isSuccessful) {
+            OauthRequestResult.Success.RefreshToken()
+        } else {
+            response.safeParse { resultFactory.parseErrorResponse(it) }
+        }
+        responseExecutor.execute { callback(result) }
     }
 }

@@ -47,8 +47,7 @@ object SimpleOauth {
     }
 
     private fun Activity.launchOauthActivity(requestCode: Int, block: Intent.() -> Unit) {
-        startActivityForResult(Intent(this, OauthActivity::class.java).also(block),
-            requestCode)
+        startActivityForResult(Intent(this, OauthActivity::class.java).also(block), requestCode)
         overridePendingTransition(0, 0)
     }
 
